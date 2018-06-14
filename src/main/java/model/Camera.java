@@ -1,7 +1,6 @@
 package model;
 
 
-@MyTable(tableName = "CAMERA")
 public class Camera extends Product<Camera> {
     private Integer pixels;
 

@@ -1,26 +1,37 @@
 import dao.AbstractDao;
-import dao.CategoryDao;
-import dao.ProductDaoImpl;
-import model.Camera;
-import model.Phone;
 import model.Product;
 
 import java.sql.SQLException;
+import java.util.List;
 
 public class SimpeJDBC {
 
-    public static void main(String[] args) throws SQLException {
+    public static void main(String[] args) throws Exception {
         /*ProductDaoImpl dao = Factory.getProductDao();
         Product p = dao.getId(1L);
         System.out.println(p);*/
 
-        Product<Camera> camera = new Camera(3L, "Samsung", 400.0, 8);
-        //Product<Phone> phone = new Phone(2L, "iPhone", 900.0, 4, "Amoled");
+
+        Product product = new Product(3L,"Samsung", 880.00);
 
         AbstractDao dao = Factory.getProductDao();
-        dao.create(camera);
+        //dao.create(product);
 
-        //Product<Phone> readPhone = (Phone)dao.read(1);
+        /*Product product1 = (Product)dao.read(1L);
+        System.out.println(product1);*/
+
+
+        //dao.update(product);
+
+        //dao.delete(5L);
+
+        List<Product> products = dao.readAll();
+
+        for (Product prod: products) {
+            System.out.println(prod);
+        }
+
+
 
     }
 }

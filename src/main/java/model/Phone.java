@@ -4,7 +4,6 @@ package model;
  * Created by Евгений on 09.06.2018.
  */
 
-@MyTable(tableName = "PHONES")
 public class Phone extends Product<Phone> {
     private int ramMemory;
     private String displayType;

@@ -1,7 +1,7 @@
 package model;
 
-//@Table("PRODUCTS").Привязуємо до класу анотацію, але її створюємо самі
 
+@MyTable(tableName = "PRODUCTS")
 public class Product<T extends Product<T>>  {
     private Long id;
     private String name;
@@ -12,6 +12,9 @@ public class Product<T extends Product<T>>  {
         this.id = id;
         this.name = name;
         this.price = price;
+    }
+
+    public Product() {
     }
 
     public Long getId() {

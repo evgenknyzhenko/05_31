@@ -1,12 +1,13 @@
 package dao;
 
+import java.sql.SQLException;
 import java.util.List;
 
 public interface GenericDao<T, ID> {
     T create(T t);
-    T read(ID id);
-    T update(T t);
-    void delete(ID t);
+    T read(ID id) throws IllegalAccessException, InstantiationException, SQLException;
+    T update(T t) throws IllegalAccessException, SQLException;
+    void delete(ID t) throws SQLException, IllegalAccessException;
 
-    List<T> readAll();
+    List<T> readAll() throws SQLException, IllegalAccessException, InstantiationException;
 }

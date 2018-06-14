@@ -1,17 +1,15 @@
 package dao;
 
-import com.sun.deploy.util.ArrayUtil;
-import model.Camera;
 import model.MyTable;
 import model.Product;
 
-import java.lang.reflect.Constructor;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.lang.reflect.Type;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 public abstract class AbstractDao<T, ID> implements GenericDao<T, ID> {
@@ -27,11 +25,10 @@ public abstract class AbstractDao<T, ID> implements GenericDao<T, ID> {
         Class<?> clazz = t.getClass();
 
         String tableName = getTableName(clazz);
-        Field[] tFields = getAllFields(t, clazz);
+        Field[] tFields = getFields(clazz);
 
 
         String query = getQuery(tableName, tFields, t);
-        System.out.println(query);
 
         try {
             Statement statement = connection.createStatement();
@@ -40,7 +37,7 @@ public abstract class AbstractDao<T, ID> implements GenericDao<T, ID> {
             e.printStackTrace();
         }
 
-
+        //metod read call for return
         return null;
     }
 
@@ -49,7 +46,7 @@ public abstract class AbstractDao<T, ID> implements GenericDao<T, ID> {
 
         for (int i = 0; i < tFields.length; i++) {
             try {
-                if (tFields[i].getType().getSimpleName().equals("String")){
+                if (tFields[i].getType().getSimpleName().equals("String")) {
                     query.append("'" + tFields[i].get(t) + "', ");
                 } else {
                     query.append(tFields[i].get(t) + ", ");
@@ -58,7 +55,7 @@ public abstract class AbstractDao<T, ID> implements GenericDao<T, ID> {
                 e.printStackTrace();
             }
         }
-        query.replace(query.length()-2, query.length()-1, ");");
+        query.replace(query.length() - 2, query.length() - 1, ");");
 
         return query.toString();
     }
@@ -74,43 +71,148 @@ public abstract class AbstractDao<T, ID> implements GenericDao<T, ID> {
         }
     }
 
-    private Field[] getAllFields(T t, Class clazz) {
-        Field[] parentFields = clazz.getSuperclass().getDeclaredFields();
-        Field[] thisClassFields = clazz.getDeclaredFields();
-        Field[] allFields = new Field[parentFields.length + thisClassFields.length];
+    private Field[] getFields(Class clazz) {
+        Field[] fields = clazz.getDeclaredFields();
+        for (int i = 0; i < fields.length; i++) {
+            fields[i].setAccessible(true);
+        }
+        return fields;
+    }
 
-        System.arraycopy(parentFields, 0, allFields, 0, parentFields.length);
-        System.arraycopy(thisClassFields, 0, allFields, parentFields.length, thisClassFields.length);
+    public T read(ID id) throws IllegalAccessException, InstantiationException, SQLException {
 
-        for (int i = 0; i < allFields.length; i++) {
-            allFields[i].setAccessible(true);
+        Class<?> clazz = this.getClass();
+        ParameterizedType parType = (ParameterizedType) clazz.getGenericSuperclass();
+        Class firstGeneric = (Class) parType.getActualTypeArguments()[0];
+
+        T t = (T) firstGeneric.newInstance();
+
+        Field[] fields = getFields(firstGeneric);
+
+
+        //String query = "SELECT * FROM ? WHERE ID = 1";
+        String query = "SELECT * FROM " + getTableName(firstGeneric) + " WHERE iiiiiiiiID = ?";
+
+
+        PreparedStatement preparedStatement = connection.prepareStatement(query);
+        //preparedStatement.setString(1, getTableName(firstGeneric));
+        preparedStatement.setLong(1, (Long) id);
+
+        ResultSet resultSet = preparedStatement.executeQuery();
+        resultSet.first();
+
+        for (int i = 0; i < fields.length; i++) {
+            fields[i].set(t, resultSet.getObject(i + 1));
+        }
+        return t;
+    }
+
+
+    public T update(T t) throws IllegalAccessException, SQLException {
+        Class<?> clazz = t.getClass();
+
+        String tableName = getTableName(clazz);
+        Field[] tFields = getFields(clazz);
+
+        StringBuilder query = new StringBuilder("UPDATE " + tableName + " SET ");
+
+        for (int i = 1; i < tFields.length; i++) {
+            if (tFields[i].getType().getSimpleName().equals("String")) {
+                query.append(tFields[i].getName() + " = '" + tFields[i].get(t) + "', ");
+            } else {
+                query.append(tFields[i].getName() + " = " + tFields[i].get(t) + " ");
+            }
+        }
+        query.append("WHERE " + tFields[0].getName() + " = " + tFields[0].get(t) + ";");
+        System.out.println(query.toString());
+
+        Statement statement = connection.createStatement();
+        statement.executeUpdate(query.toString());
+
+
+        return null;
+    }
+
+    public void delete(ID t) throws SQLException, IllegalAccessException {
+
+        Class<?> clazz = this.getClass();
+        ParameterizedType parameterizedType = (ParameterizedType)clazz.getGenericSuperclass();
+        Class firstGeneric = (Class) parameterizedType.getActualTypeArguments()[0];
+
+        String tableName = getTableName(firstGeneric);
+        Field[] fields = getFields(firstGeneric);
+
+
+        String query = "DELETE FROM " + tableName
+                + " WHERE " + fields[0].getName() + " = " + t;
+
+        Statement statement = connection.createStatement();
+        statement.executeUpdate(query);
+
+
+
+    }
+
+    public List<T> readAll() throws SQLException, IllegalAccessException, InstantiationException {
+        List<T> listOfT = new ArrayList<>();
+
+        Class<?> clazz = this.getClass();
+        ParameterizedType parameterizedType = (ParameterizedType)clazz.getGenericSuperclass();
+        Class firstGeneric = (Class) parameterizedType.getActualTypeArguments()[0];
+
+
+        Field[] fields = getFields(firstGeneric);
+
+        String tableName = getTableName(firstGeneric);
+
+        String query = "SELECT * FROM " + tableName;
+
+        Statement statement = connection.createStatement();
+        ResultSet resultSet = statement.executeQuery(query);
+
+        while (resultSet.next()){
+            T t = (T) firstGeneric.newInstance();
+            for (int i = 0; i < fields.length; i++) {
+                fields[i].set(t, resultSet.getObject(i + 1));
+
+            }
+            listOfT.add(t);
         }
 
-        return allFields;
-    }
-
-    public T read(ID id) {
-        Class clazz = this.getClass();
-        ParameterizedType parType = (ParameterizedType)clazz.getGenericSuperclass();
-        Class firstGeneric = (Class)parType.getActualTypeArguments()[0];
-        System.out.println(firstGeneric);
-
-        //String query = "SELECT "
-
-
-
-        return null;
-    }
-
-    public T update(T t) {
-        return null;
-    }
-
-    public void delete(ID t) {
-
-    }
-
-    public List<T> readAll() {
-        return null;
+        return listOfT;
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
