@@ -3,8 +3,11 @@ package model;
 
 @MyTable(tableName = "PRODUCTS")
 public class Product<T extends Product<T>>  {
+    @FieldsOfClass(fieldName = "ID")
     private Long id;
+    @FieldsOfClass(fieldName = "NAME")
     private String name;
+    @FieldsOfClass(fieldName = "PRICE")
     private Double price;
 
 
